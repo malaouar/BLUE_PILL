@@ -1,0 +1,59 @@
+
+Timer output compare mode
+To control an output waveform, or to indicate when a period of time has elapsed, the timer is used in one of the following output compare modes. The main difference between these modes is the output signal waveform.
+• Output compare timing: The comparison between the output compare register CCRx
+and the counter CNT has no effect on the outputs. This mode is used to generate a
+timing base.
+• Output compare active: Set the channel output to active level on match. The OCxRef
+signal is forced high when the counter (CNT) matches the capture/compare register
+(CCRx).
+• Output compare inactive: Set channel to inactive level on match. The OCxRef signal
+is forced low when the counter (CNT) matches the capture/compare register (CCRx).
+• Output compare toggle: OCxRef toggles when the counter (CNT) matches the
+capture/compare register (CCRx).
+• Output compare forced active/inactive: OCREF is forced high (active mode) or low
+(inactive mode) independently from counter value.
+To configure the timer in one of these modes:
+1.Select the clock source.
+2. Write the desired data in the ARR and CCRx registers.
+3. Configure the output mode:
+a) Select the output compare mode: timing / active / inactive / toggle.
+b) In case of active, inactive and toggle modes, select the polarity by writing CCxP in
+CCER register.
+c) Disable the preload feature for CCx by writing OCxPE in CCMRx register.
+d) Enable the capture / compare output by writing CCxE in CCMRx register.
+4. Enable the counter by setting the CEN bit in the TIMx_CR1 register.
+5. Set the CCxIE / CCxDE bit if an interrupt / DMA request is to be generated.
+
+Output compare mode:
+This function is used to control an output waveform or indicating when a period of time has
+elapsed.
+When a match is found between the capture/compare register and the counter, the output
+compare function:
+• Assigns the corresponding output pin to a programmable value defined by the output
+compare mode (OCxM bits in the TIMx_CCMRx register) and the output polarity (CCxP
+bit in the TIMx_CCER register). The output pin can keep its level (OCXM=000), be set
+active (OCxM=001), be set inactive (OCxM=010) or can toggle (OCxM=011) on match.
+• Sets a flag in the interrupt status register (CCxIF bit in the TIMx_SR register).
+• Generates an interrupt if the corresponding interrupt mask is set (CCXIE bit in the
+TIMx_DIER register).
+• Sends a DMA request if the corresponding enable bit is set (CCxDE bit in the
+TIMx_DIER register, CCDS bit in the TIMx_CR2 register for the DMA request
+selection).
+The TIMx_CCRx registers can be programmed with or without preload registers using the
+OCxPE bit in the TIMx_CCMRx register.
+In output compare mode, the update event UEV has no effect on OCxREF and OCx output.
+The timing resolution is one count of the counter. Output compare mode can also be used to
+output a single pulse (in One Pulse mode).
+
+Procedure:
+1. Select the counter clock (internal, external, prescaler).
+2. Write the desired data in the TIMx_ARR and TIMx_CCRx registers.
+3. Set the CCxIE bit if an interrupt request is to be generated.
+4. Select the output mode. For example:
+– Write OCxM = 011 to toggle OCx output pin when CNT matches CCRx
+– Write OCxPE = 0 to disable preload register
+– Write CCxP = 0 to select active high polarity
+– Write CCxE = 1 to enable the output
+5. Enable the counter by setting the CEN bit in the TIMx_CR1 register.
+

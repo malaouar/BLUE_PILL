@@ -1,0 +1,3 @@
+
+dfu-util -l
+pause

@@ -1,0 +1,265 @@
+Overview:
+
+Blue pill is the nickname given to the most popular, ultra-cheap and compact STM32F103 board.
+
+The USB standard requires a 1.5 kO pullup resistor on D+, but this board is known to have a wrong value (R10 on the board). It ships with either a 10 kO resistor or a 4.7 kO resistor, but it should be replaced with a 1.5 kO resistor, or put an appropriate resistor value (e.g 1.8 kO) in between PA12 and 3.3V. It is also true that some PCs are tolerant of incorrect value so, before you change the resistance, you can try if it works in your case.
+
+
+Software installation:
+
+To program the board using USB A bootloader (STM32duino) needs to be flashed using a USB-to-Serial module or ST-Link (SWD). 
+Note that after first flashing the bootloader you may have to place the board into "perpetual bootloader" mode before you can upload a sketch; place a resistor between pin PC14 and 3.3V, and then reset the board. You should now be able to flash a blank sketch, remove the resistor, and restart the board, after which uploading new sketches should work as expected. If you find that the ARDUINO IDE successfully resets your board, but dfu-util complains about no DFU-devices being present you may have to edit the maple-upload script in tools-folder. Find the line where it calls upload-reset, and increase the value given to it.
+
+So if you have a board without bootloader or sketch, there will be a device detected as unknown. If you have a bootloader but no sketch, then the computer will find the DFU device only.
+If you have a bootloader AND a sketch (even blank !!) , then the DFU device will show up for a few seconds, and disappear and next a serial USB device will be deteced. the COM port will appear ~5 seconds (on Win10) after the new sketch has been uploaded and the board reset.
+
+128 KB flash on C8 version:
+
+The F103C8 ST microcontroller is declared to have 64 KB of flash, but virtually all the C8 microcontrollers tested have 128 KB of flash instead.
+
+At least one exception was reported in the forum, so it is not guaranteed.
+
+The STM32duino core have two uploading board settings, one for 64 KB and one for 128 KB. Also the integrated serial bootloader communicates at startup that are present 128 KB of flash.
+
+- Bootloader message:
+
+    Using Parser : Raw BINARY
+    Interface serial_w32: 57600 8E1
+    Version  : 0x22
+    Option 1  : 0x00
+    Option 2  : 0x00
+    Device ID  : 0x0410 (Medium-density)
+    - RAM  : 20 KiB (512b reserved by bootloader)
+    - Flash  : 128 KiB (sector size: 4x1024)
+    - Option RAM : 16 b
+    - System RAM : 2 KiB
+
+Additional notes:
+
+The name on the forum for these boards is a reference to the Matrix and comes from this thread on the forum. It's one of the cheap STM32F103 boards that can be found from Chinese retailers. It's currently very popular with retailers, and it costs about $2.
+
+Features:
+
+    ARM Cortex M3
+    72 MHz
+    64 KB/128 KB Flash
+    20 KB RAM
+    Reset button
+    LED on PIN PC13
+    32 kHz Real time clock crystal
+    Jump links on Boot0 and Boot1
+    Micro USB connector for power and data
+    ST-Link header on the top of the board.
+    Voltage regulator 	RT9193-33 (300 mA) 
+    User LED(s) 	PC13 (blue; lights when PC13 is LOW)
+
+Known issues:
+
+    The micro-USB connector is not soldered to the board very well and is easily broken.
+
+There are multiple versions of this board with different connectors.  You can increase the strength by re-soldering the connector and possibly covering the connector in epoxy glue or hot-melt glue.
+
+    The 3.3V voltage regulator is a very small, knock-off device. It overheats quickly and often has no thermal protection, feeding through its input voltage when it fails.
+
+It's recommended to power external components with another regulator so that the power draw on the Blue Pill does not exceed 100 mA.
+
+    Analogue power and ground is connected directly to digital power and ground, which can cause additional noise on the ADC input.
+
+    The reset button on some of these boards is very hard to press.
+
+    There is no dedicated USB reset circuitry on this board.
+
+    There is no Schottky diode between USB +5V and system VIN power. So you cannot power the board directly from a 5 Volt supply, and use USB at the same time.
+
+    Most bluepill boards have the wrong pullup resistor value which prevents native USB from working properly. The R10 resistor should have a value of 1k5 and be pulled up to 3v3. In spite of this flaw, native USB will work on some PCs. Try the board on your PC before you bother changing the resistor.
+    
+    =========================
+Bootloaders
+
+Standard STM bootloader:
+All STM32 microcontrollers contain a standard bootloader preloaded by ST Microelectronics.
+The standard ('factory', 'native', 'STM') bootloader is always available -- being stored in read-only memory -- and cannot be modified or deleted. You can access it by configuring the boot pins high or low, and then powering (or resetting) the MCU.
+Through the standard bootloader you can upload firmware to the MCU. This can either be an application (Arduino sketch) or another 'non standard' bootloader with more features.
+Different STM32 device families offer different capabilities in their factory bootloaders. For example, some support uploading firmware over USB while others do not. An example of the latter is the popular F103 series.
+For details about the standard bootloaders available in each MCU you can refer to ST application note AN2606.
+Original Maple bootloader and stm32duino bootloader
+
+
+stm32duino:
+In order to simplify the upload process leveraging the USB device, Leaflabs developed a custom DFU bootloader that needs to be uploaded in the MCU at address 0x08000000 via one of the standard STM upload methods (ST Link or standard STM serial bootloader); this custom bootloader is called the original Maple bootloader.
+Leaflabs' documentation about the original Maple bootloader can be found here: http://docs.leaflabs.com/static.leaflabs.com/pub/leaflabs/maple-docs/latest/bootloader.html
+
+stm32duino.com guys modified the original Maple bootloader in order to:
+    - enable support for STM32F103 non-Maple boards (blue pill and other generic boards)
+    - fix issues found in the original Maple bootloader
+    - reduce the bootloader size so that enlarging the memory available to user sketches
+    - remove the option to upload to RAM
+
+This modified version of the Maple bootloader is known as STM32duino-bootloader or also bootloader 2.0.
+Details about the STM32duino-bootloader as well as ready to use binary files can be found in the Github repository: https://github.com/rogerclarkmelbourne/STM32duino-bootloader
+
+Boot0 and Boot1 pin settings:
+
+Activating the bootloader is done through forcing two boot pins (and then resetting the MCU). Many boards have one or more boot pins exposed as jumpers or push buttons.
+
+Normal boot (to user firmware, which may be a secondary bootloader):
+
+    Boot0 LOW, Boot1 LOW
+
+Allow firmware upload through USART1:
+
+    Boot0 HIGH, Boot1 LOW
+
+Not used:
+
+    Boot0 = LOW, Boot1 = HIGH
+
+Boot from RAM (not implemented in v2.0 bootloader):
+
+    Boot0 HIGH, Boot1 HIGH
+
+Building the Bootloaders:
+
+Tested on Linux Mint 17.3 - Arduino 1.6.12
+I believe this is the same process I used on Mint 17.2 and Arduino 1.6.5.
+Make sure that you have a bin subdirectory in your home folder and that it is in your path.
+
+echo $PATH
+ls ~/bin
+
+Create the bin folder if it does not exist.
+
+mkdir ~/bin
+
+Locate the arm compiler used by STM32duino. From the home folder enter
+
+find | grep -i arm-none-eabi-gcc$
+./.arduino15/packages/arduino/tools/arm-none-eabi-gcc
+./.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-gcc
+
+The second line is the one you want.
+Create symbolic links to all the arm tools in your ~/bin folder.
+
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-gcc ~/bin/arm-none-eabi-gcc
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-g++ ~/bin/arm-none-eabi-g++
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-ar ~/bin/arm-none-eabi-ar
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-objcopy ~/bin/arm-none-eabi-objcopy
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-objdump ~/bin/arm-none-eabi-objdump
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-size ~/bin/arm-none-eabi-size
+$ ln -s ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-nm ~/bin/arm-none-eabi-nm
+
+Download and unzip the bootloader files [1] and save somewhere convenient. Change to that folder.
+
+chmod +x make_all.bat
+
+Execute make_all.bat. Even though this is a Windows batch file, there is nothing there that keeps it from running on Linux.
+
+./make_all.bat
+
+This should take a minute or so.
+md5sum one of the new files and compare with the same file in the repository. This ensures that the newly created binary matches the original.
+
+md5sum binaries/maple_rev5_boot20.bin 
+be310d2430bc6c674849bf17ef63b435  binaries/maple_rev5_boot20.bin
+md5sum ~/Downloads/maple_rev5_boot20.bin
+be310d2430bc6c674849bf17ef63b435  /home/fred/Downloads/maple_rev5_boot20.bin
+
+The files match, so you are ready to compile a custom bootloader.
+Retrieved from "http://wiki.stm32duino.com/index.php?title=Bootloader&oldid=927" 
+
+==========================
+Burning the bootloader:
+Most STM32F103 boards do not come with a USB bootloader installed. The main exception is the Maple mini. The STM32F4 series MCU has a built in Serial and USB (DFU) bootloader, so there is no need to install an additional bootloader.
+
+On the STM32F103 there are 2 ways to flash the bootloader onto the board
+
+    Using the native bootloader (built into the STM32F103), by connecting to USART1 using a USB to serial TTL adapter.
+    Using a SWD programmer tool like the ST-Link or Black Magic Probe.
+
+Currently it is not possible to burn the bootloader from within the Arduino IDE.
+Required Hardware
+
+It is possible to flash the bootloader using any of the following hardware:
+
+   - A USB to TTL serial adapter
+   - A CH340G, CP2102, or FT232RL board 
+    Note: Some versions of Linux (Ubuntu 14.04 and older) have a CH340G driver with no parity. You will need to update to a modern kernel or recompile the driver from source to allow uploading using this adapter. 
+   - An Arduino Nano or Uno can act as a USB to serial adapter
+   - The adapter would preferably be 3.3 volt, but some STM32 chips have 5V tolerant USART pins.
+   - A JTAG adapter
+   - ST-Link
+   -  Black Magic Probe (Most STM32 boards can be reprogrammed as a BMP)
+
+
+Flashing the bootloader onto the Blue Pill via USB to Serial converter using UART1:
+
+    -Download the correct bootloader binary, in this case generic_boot20_pc13.bin 
+    -Set the 'boot 0' pin/jumper high, and 'boot 1' low
+    -Connect the board to the PC using a USB to serial converter
+            RX to PA9, TX to PA10
+            GND to G , 5V to 5V (or 3.3V to 3V3 )
+    -Reset the board, the user LED (PC13)  should now be off
+    -Download and install Flash Loader Demonstrator from ST site
+    -Use Flash Loader Demonstrator to flash the bootloader.
+
+  For normal use, set both boot pins low.
+            
+After connceting it to PC the LED blinks continuosly and the board is detected as "maple 003
+====================================================
+
+Arduino STM32 – USB Serial and DFU:
+
+I often get asked about why the USB Serial doesn’t seem to work on Maple mini or generic STM32F103 boards loaded with the STMduino-bootloader.
+
+If you buy a brand new Maple mini, and plug it into your PC or Mac or Linux box. Do not be suprised if you only see a DFU device. This is normal.
+
+Just compile and upload a blank sketch.  Even a blank sketch will contain the Serial USB code, and your board should then appear as a “Maple Serial” device.
+
+There is a common missconception that the STM32duino-bootloader, and the older Maple bootloader, contain both DFU (upload) USB support and also “Maple Serial” (USB Serial) functionality. However this is not the case.
+
+Originally when Leaflabs wrote the Maple bootloader (back in around 2012) they tried to include both  DFU and Serial functionality, however they found issues with this under Windows. This is because the DFU and Serial functionality requires the use of 2 completely different (built in) drivers in Windows; when the Maple board is only one USB device.
+
+Normally manufacturers create composite USB devices in this case, i.e one USB driver that performs both the DFU and Serial functions. But creation and certification of custom drivers for Windows is non-trivial and expensive. Hence LeafLabs chose to separate the DFU and Serial USB functionality, so that only the DFU driver is used when the bootloader is running and only the Serial driver is used when the Arduino sketch is running.
+
+This method allows the use of 2 separate Windows drivers – both of which come as standard on all Windows installations.
+
+Although the functionality of both DFU and USB Serial could have been included in the bootloader, it would make the bootloader and sketch core code (libmaple) more complicated, as the sketch would need to communicate with the bootloader in order to send and receive serial data.
+
+So Leaflabs chose to go with the simpler option of the bootloader only containing the DFU functionality, and for the USB Serial to be compiled as part of the sketch. Although this is the simpler option, its probably the best one, because if the Serial USB support was contained in the bootloader, the amount of additional code to allow the sketch to send and receive Serial via the bootloader would make the overall size of the bootloader and sketch slightly larger.
+
+Sketches do take slightly longer to upload than if they did not contain the USB Serial functionality, but uploads via DFU are generally faster than AVR Arduinos, so this isn’t a serious concern.
+
+Another consequence of splitting the functionality, is that if the sketch crashes, then the USB Serial will also crash, and often the USB Serial device will not appear at all.
+
+And… any board that has been freshly installed with a bootloader, will only appear as a DFU device, because the bootloader checks to see if a valid sketch is in the program (flash) memory, and if not the bootloader continues to stay in DFU mode until a valid sketch has been upload.
+==========================
+
+
+- If several peripherals share the same I/O pin, to avoid conflict between these alternate functions only one peripheral should be enabled at a time through the peripheral clock enable bit (in the corresponding RCC peripheral clock enable register).
+
+- PC13, PC14 and PC15 are supplied through the power switch. Since the switch only sinks a limited amount of current
+(3 mA), the use of GPIOs PC13 to PC15 in output mode is limited: the speed should not exceed 2 MHz with a maximum
+load of 30 pF and these IOs must not be used as a current source (e.g. to drive an LED).
+
+- the register &= ~(value) statements are not necessary after a system reset; the chip will automatically set each register to 0 . But when an option has more than one bit, it is good practice to reset the whole option before setting the bits you want. For example, if you had previously set a value to 01 and you tried to set its first two bits to 10 with the single command, register |= 0b10, then the value would actually get set to (01 | 10) = 11, which is not what you wanted. Clearing those two bits first with a command like register &= ~(0b11) prevents that problem without overwriting any other settings in the register.
+
+we can use two methodes to mofify some bits in a register:
+M1:
+ 	uint32_t var = PORTB->CRL;  // read the value of register in variable var
+ 	var &= ~(0x????);   // clear the needed bits
+ 	var |= ~(0x????);   // change the value of needed bits
+ 	PORTB->CRL = var;   // write new value in register
+ 	
+M2:
+  PORTB->CRL &= ~(0x????); // clear the needed bits
+  PORTB->CRL |= ~(0x????);  // change the value of needed bits
+  
+================
+Variables in RAM:
+
+ one way to choose the particular address
+
+    int var __attribute__((at(0xA0001000))); 
+    var=0x28;
+===============
+ 
